@@ -1,0 +1,389 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Forest Finder</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+  :root {
+    --bg: #0f1210;
+    --surface: #1a1e1b;
+    --text: #ecebe3;
+    --muted: #9ca08f;
+    --border: #2b2f28;
+    --accent: #5fa66b;
+    --inside: #5fa66b;
+    --near: #d9a93a;
+    --outside: #8a8a8a;
+    --error: #e07377;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    line-height: 1.5;
+  }
+  .wrap {
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 16px 14px 48px;
+  }
+  h1 {
+    font-size: 22px;
+    font-weight: 600;
+    margin: 0 0 4px;
+    letter-spacing: -0.01em;
+  }
+  .sub {
+    color: var(--muted);
+    font-size: 14px;
+    margin-bottom: 16px;
+  }
+  .status {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 22px 20px;
+    margin-bottom: 12px;
+    text-align: center;
+    transition: border-color .25s;
+  }
+  .status.inside { border-color: var(--inside); }
+  .status.near { border-color: var(--near); }
+  .status.outside { border-color: var(--outside); }
+  .status.error { border-color: var(--error); }
+  .verdict {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin-bottom: 6px;
+    line-height: 1.15;
+  }
+  .inside .verdict { color: var(--inside); }
+  .near .verdict { color: var(--near); }
+  .outside .verdict { color: var(--outside); }
+  .error .verdict { color: var(--error); }
+  .detail {
+    color: var(--muted);
+    font-size: 15px;
+    font-variant-numeric: tabular-nums;
+  }
+  button {
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 10px;
+    background: var(--accent);
+    color: #0f1210;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  button[disabled] { opacity: .6; cursor: default; }
+  button.secondary {
+    background: transparent;
+    color: var(--text);
+    border: 1px solid var(--border);
+    font-weight: 600;
+  }
+  .btn-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  #map {
+    height: 60vh;
+    min-height: 320px;
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    margin-bottom: 12px;
+    background: #222;
+  }
+  .info {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px 16px;
+  }
+  .info h2 {
+    font-size: 12px;
+    font-weight: 600;
+    margin: 0 0 10px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .info table {
+    width: 100%;
+    border-collapse: collapse;
+    font-variant-numeric: tabular-nums;
+  }
+  .info td {
+    padding: 3px 6px 3px 0;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+  .info td.label { color: var(--muted); width: 72px; }
+  .note {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 12px;
+    line-height: 1.5;
+  }
+  .user-pos {
+    font-size: 13px;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+  }
+  .leaflet-container { background: #222; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Forest Finder</h1>
+  <div class="sub">Checks whether your phone is inside the plot.</div>
+
+  <div id="status" class="status outside">
+    <div class="verdict" id="verdict">Waiting for GPS</div>
+    <div class="detail" id="detail">Tap the button to use your phone's location.</div>
+  </div>
+
+  <div class="btn-row">
+    <button id="start">Start tracking</button>
+    <button id="recenter" class="secondary" disabled>Recenter map</button>
+  </div>
+
+  <div id="map"></div>
+
+  <div class="info">
+    <h2>Plot corners</h2>
+    <table id="corners"></table>
+    <div class="user-pos" id="userPos" style="display:none"></div>
+    <div class="note" id="derived"></div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+  const dms = (d, m, s) => d + m/60 + s/3600;
+
+  const CORNERS = [
+    { name: "A (NW)", lat: dms(52,11,33.32), lon: dms(13,18,50.53) },
+    { name: "B (NE)", lat: dms(52,11,33.79), lon: dms(13,18,53.35) },
+    { name: "D (SE)", lat: dms(52,11,30.23), lon: dms(13,18,54.40) },
+    { name: "C (SW)", lat: dms(52,11,29.75), lon: dms(13,18,51.69) },
+  ];
+  const POLY = CORNERS.map(c => [c.lat, c.lon]);
+
+  function inside(lat, lon, poly) {
+    let hit = false;
+    for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+      const [yi, xi] = poly[i];
+      const [yj, xj] = poly[j];
+      const crosses = (yi > lat) !== (yj > lat) &&
+        lon < ((xj - xi) * (lat - yi)) / (yj - yi) + xi;
+      if (crosses) hit = !hit;
+    }
+    return hit;
+  }
+
+  const MID_LAT = 52.1922 * Math.PI / 180;
+  const M_PER_DEG_LAT = 111320;
+  const M_PER_DEG_LON = 111320 * Math.cos(MID_LAT);
+  function toMeters(lat, lon, refLat, refLon) {
+    return [
+      (lon - refLon) * M_PER_DEG_LON,
+      (lat - refLat) * M_PER_DEG_LAT,
+    ];
+  }
+
+  function edgeDistance(lat, lon, poly) {
+    const refLat = poly[0][0], refLon = poly[0][1];
+    const [px, py] = toMeters(lat, lon, refLat, refLon);
+    let best = Infinity;
+    for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+      const [ax, ay] = toMeters(poly[j][0], poly[j][1], refLat, refLon);
+      const [bx, by] = toMeters(poly[i][0], poly[i][1], refLat, refLon);
+      const dx = bx - ax, dy = by - ay;
+      const len2 = dx*dx + dy*dy;
+      let t = len2 === 0 ? 0 : ((px - ax) * dx + (py - ay) * dy) / len2;
+      t = Math.max(0, Math.min(1, t));
+      const cx = ax + t * dx, cy = ay + t * dy;
+      const d = Math.hypot(px - cx, py - cy);
+      if (d < best) best = d;
+    }
+    return best;
+  }
+
+  const toDMS = v => {
+    const d = Math.floor(v);
+    const mFloat = (v - d) * 60;
+    const m = Math.floor(mFloat);
+    const s = ((mFloat - m) * 60).toFixed(2);
+    return `${d}° ${m}′ ${s}″`;
+  };
+
+  const cornersTable = document.getElementById("corners");
+  for (const c of CORNERS) {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td class="label">${c.name}</td>
+      <td>${toDMS(c.lat)} N</td>
+      <td>${toDMS(c.lon)} E</td>
+    `;
+    cornersTable.appendChild(tr);
+  }
+
+  const map = L.map("map", { zoomControl: true });
+  const centerLat = CORNERS.reduce((s, c) => s + c.lat, 0) / CORNERS.length;
+  const centerLon = CORNERS.reduce((s, c) => s + c.lon, 0) / CORNERS.length;
+  map.setView([centerLat, centerLon], 19);
+
+  // Satellite imagery (Esri World Imagery — no API key needed).
+  const satellite = L.tileLayer(
+    "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+    {
+      maxZoom: 20,
+      maxNativeZoom: 19,
+      attribution: "Imagery © Esri, Maxar, Earthstar Geographics",
+    }
+  ).addTo(map);
+  // Optional labels on top of satellite.
+  const labels = L.tileLayer(
+    "https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",
+    { maxZoom: 20, maxNativeZoom: 19, opacity: 0.8 }
+  );
+  const streets = L.tileLayer(
+    "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+    { maxZoom: 19, attribution: "© OpenStreetMap" }
+  );
+  L.control.layers(
+    { "Satellite": satellite, "Street map": streets },
+    { "Place labels": labels },
+    { position: "topright", collapsed: true }
+  ).addTo(map);
+
+  const polyLayer = L.polygon(POLY, {
+    color: "#ffdd33",
+    weight: 3,
+    fillColor: "#ffdd33",
+    fillOpacity: 0.15,
+  }).addTo(map);
+  for (const c of CORNERS) {
+    L.circleMarker([c.lat, c.lon], {
+      radius: 5,
+      color: "#ffdd33",
+      fillColor: "#ffdd33",
+      fillOpacity: 1,
+      weight: 2,
+    }).bindTooltip(c.name, { permanent: false }).addTo(map);
+  }
+  map.fitBounds(polyLayer.getBounds(), { padding: [40, 40] });
+
+  let userMarker = null;
+  let accuracyCircle = null;
+
+  const statusEl = document.getElementById("status");
+  const verdictEl = document.getElementById("verdict");
+  const detailEl = document.getElementById("detail");
+  const userPosEl = document.getElementById("userPos");
+  const startBtn = document.getElementById("start");
+  const recenterBtn = document.getElementById("recenter");
+
+  function setStatus(cls, verdict, detail) {
+    statusEl.className = "status " + cls;
+    verdictEl.textContent = verdict;
+    detailEl.textContent = detail;
+  }
+
+  function onPosition(pos) {
+    const { latitude, longitude, accuracy } = pos.coords;
+    const isInside = inside(latitude, longitude, POLY);
+    const dist = edgeDistance(latitude, longitude, POLY);
+    const acc = Math.max(1, Math.round(accuracy));
+    const distRounded = Math.round(dist);
+
+    if (isInside) {
+      if (dist < accuracy) {
+        setStatus("near", "Near the edge",
+          `Inside, ${distRounded} m from the border, but GPS accuracy is only ±${acc} m.`);
+      } else {
+        setStatus("inside", "You are inside the plot",
+          `${distRounded} m from the nearest border. GPS accuracy ±${acc} m.`);
+      }
+    } else {
+      if (dist < accuracy) {
+        setStatus("near", "Near the edge",
+          `Outside by ${distRounded} m, within GPS accuracy of ±${acc} m.`);
+      } else {
+        setStatus("outside", `${distRounded} m away`,
+          `Outside the plot. GPS accuracy ±${acc} m.`);
+      }
+    }
+
+    userPosEl.style.display = "block";
+    userPosEl.textContent = `You: ${toDMS(latitude)} N, ${toDMS(longitude)} E · ±${acc} m`;
+
+    if (!userMarker) {
+      userMarker = L.circleMarker([latitude, longitude], {
+        radius: 7,
+        color: "#ffffff",
+        fillColor: "#3b82f6",
+        fillOpacity: 1,
+        weight: 2,
+      }).addTo(map);
+      accuracyCircle = L.circle([latitude, longitude], {
+        radius: accuracy,
+        color: "#3b82f6",
+        weight: 1,
+        fillOpacity: 0.12,
+      }).addTo(map);
+      recenterBtn.disabled = false;
+      const bounds = L.latLngBounds([[latitude, longitude], ...POLY]);
+      map.fitBounds(bounds, { padding: [40, 40], maxZoom: 19 });
+    } else {
+      userMarker.setLatLng([latitude, longitude]);
+      accuracyCircle.setLatLng([latitude, longitude]);
+      accuracyCircle.setRadius(accuracy);
+    }
+  }
+
+  function onError(err) {
+    setStatus("error", "Location unavailable", err.message || "Permission denied or GPS failed.");
+    startBtn.disabled = false;
+    startBtn.textContent = "Try again";
+  }
+
+  startBtn.addEventListener("click", () => {
+    if (!("geolocation" in navigator)) {
+      setStatus("error", "No GPS", "This browser does not support geolocation.");
+      return;
+    }
+    startBtn.disabled = true;
+    startBtn.textContent = "Tracking…";
+    setStatus("outside", "Locating…", "Waiting for the first GPS fix.");
+    navigator.geolocation.watchPosition(onPosition, onError, {
+      enableHighAccuracy: true,
+      maximumAge: 2000,
+      timeout: 30000,
+    });
+  });
+
+  recenterBtn.addEventListener("click", () => {
+    if (userMarker) {
+      const bounds = L.latLngBounds([userMarker.getLatLng(), ...POLY]);
+      map.fitBounds(bounds, { padding: [40, 40], maxZoom: 19 });
+    }
+  });
+</script>
+</body>
+</html>
