@@ -27,6 +27,9 @@
     overflow: hidden;
     overscroll-behavior: none;
   }
+  button { font-family: inherit; }
+
+  /* Map mode */
   #map {
     position: fixed;
     inset: 0;
@@ -36,7 +39,6 @@
     z-index: 0;
   }
   .leaflet-container { background: #222; }
-
   .status {
     position: fixed;
     top: calc(env(safe-area-inset-top, 0px) + 12px);
@@ -74,14 +76,11 @@
     font-size: 13px;
     font-variant-numeric: tabular-nums;
   }
-
   .fab {
     position: fixed;
-    right: 14px;
-    bottom: calc(env(safe-area-inset-bottom, 0px) + 72px);
     z-index: 500;
-    width: 48px;
-    height: 48px;
+    width: 44px;
+    height: 44px;
     border-radius: 50%;
     background: var(--surface);
     backdrop-filter: blur(14px);
@@ -96,8 +95,15 @@
     box-shadow: 0 2px 8px rgba(0,0,0,0.4);
   }
   .fab:disabled { opacity: .4; cursor: default; }
-  .fab svg { width: 22px; height: 22px; }
-
+  .fab svg { width: 20px; height: 20px; }
+  #recenter {
+    right: 14px;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 72px);
+  }
+  #editFab {
+    left: 14px;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 72px);
+  }
   .sheet {
     position: fixed;
     left: 0;
@@ -118,9 +124,10 @@
   .sheet .handle {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: center;
     cursor: pointer;
     height: 28px;
+    position: relative;
   }
   .sheet .handle::before {
     content: "";
@@ -152,7 +159,7 @@
     font-size: 13px;
     white-space: nowrap;
   }
-  .sheet td.label { color: var(--muted); width: 72px; }
+  .sheet td.label { color: var(--muted); width: 48px; }
   .user-pos {
     font-size: 13px;
     color: var(--muted);
@@ -161,98 +168,349 @@
     padding-top: 10px;
     border-top: 1px solid var(--border);
   }
-  .enable {
+
+  /* Setup mode */
+  #setup {
     position: fixed;
     inset: 0;
-    z-index: 600;
-    display: none;
-    align-items: center;
-    justify-content: center;
-    background: rgba(15,18,16,0.75);
-    backdrop-filter: blur(6px);
-    -webkit-backdrop-filter: blur(6px);
-    padding: 20px;
+    overflow-y: auto;
+    background: var(--bg);
+    z-index: 400;
+    padding: 20px 16px calc(env(safe-area-inset-bottom, 0px) + 32px);
   }
-  .enable.show { display: flex; }
-  .enable .card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 20px;
-    max-width: 360px;
-    text-align: center;
+  .setup-wrap {
+    max-width: 560px;
+    margin: 0 auto;
   }
-  .enable h2 {
-    margin: 0 0 8px;
-    font-size: 18px;
+  .setup-wrap h1 {
+    font-size: 22px;
+    font-weight: 600;
+    margin: 0 0 4px;
+    letter-spacing: -0.01em;
   }
-  .enable p {
+  .setup-wrap p.sub {
     color: var(--muted);
     font-size: 14px;
-    margin: 0 0 16px;
+    margin: 0 0 20px;
   }
-  .enable button {
+  .setup-wrap label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin: 16px 0 8px;
+  }
+  textarea {
     width: 100%;
+    min-height: 180px;
     padding: 12px;
+    background: #1a1e1b;
+    color: var(--text);
+    border: 1px solid var(--border);
     border-radius: 10px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 13px;
+    line-height: 1.5;
+    resize: vertical;
+    -webkit-appearance: none;
+  }
+  textarea:focus { outline: none; border-color: var(--accent); }
+  .btn {
+    width: 100%;
+    padding: 13px;
     border: none;
+    border-radius: 10px;
     background: var(--accent);
     color: #0f1210;
     font-size: 15px;
     font-weight: 700;
     cursor: pointer;
-    font-family: inherit;
+    margin-top: 12px;
+  }
+  .btn.secondary {
+    background: transparent;
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  .btn:disabled { opacity: .5; cursor: default; }
+  .preview {
+    margin-top: 14px;
+    padding: 14px 16px;
+    background: #1a1e1b;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    font-size: 13px;
+  }
+  .preview.err { border-color: var(--error); color: var(--error); }
+  .preview table {
+    width: 100%;
+    border-collapse: collapse;
+    font-variant-numeric: tabular-nums;
+  }
+  .preview td { padding: 2px 6px 2px 0; font-size: 13px; }
+  .preview td.label { color: var(--muted); width: 48px; }
+  .url-out {
+    margin-top: 14px;
+    padding: 14px 16px;
+    background: #1a1e1b;
+    border: 1px solid var(--accent);
+    border-radius: 10px;
+  }
+  .url-out .label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 8px;
+  }
+  .url-out .url {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 13px;
+    word-break: break-all;
+    color: var(--accent);
+    margin-bottom: 10px;
+  }
+  .url-row { display: flex; gap: 8px; }
+  .url-row .btn { margin-top: 0; }
+
+  .format-hint {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 8px;
+    line-height: 1.5;
   }
 </style>
 </head>
 <body>
 
-<div id="map"></div>
+<!-- Setup mode -->
+<div id="setup" hidden>
+  <div class="setup-wrap">
+    <h1>Set your forest</h1>
+    <p class="sub">Paste the four (or more) corner coordinates of the plot. Order matters — go around the perimeter.</p>
 
-<div id="status" class="status outside">
-  <div class="verdict" id="verdict">Waiting for GPS…</div>
-  <div class="detail" id="detail">Allow location access when the browser asks.</div>
-</div>
+    <label for="coordsInput">Corners</label>
+    <textarea id="coordsInput" spellcheck="false" placeholder="52° 11′ 33.32″ N
+13° 18′ 50.53″ E
 
-<button class="fab" id="recenter" aria-label="Recenter map" disabled>
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    <circle cx="12" cy="12" r="3"></circle>
-    <line x1="12" y1="2" x2="12" y2="5"></line>
-    <line x1="12" y1="19" x2="12" y2="22"></line>
-    <line x1="2" y1="12" x2="5" y2="12"></line>
-    <line x1="19" y1="12" x2="22" y2="12"></line>
-  </svg>
-</button>
+52° 11′ 33.79″ N
+13° 18′ 53.35″ E
 
-<div class="sheet" id="sheet">
-  <div class="handle" id="sheetHandle">
-    <span>Plot corners</span>
+..."></textarea>
+    <div class="format-hint">Accepts <code>52° 11′ 33.32″ N</code> or <code>52.192589</code>. One value per line, lat then lon. 3–18 corners.</div>
+
+    <button class="btn secondary" id="parseBtn">Preview corners</button>
+    <div id="parseOut"></div>
+
+    <button class="btn" id="generateBtn" disabled>Generate forest URL</button>
+    <div id="urlOut"></div>
   </div>
-  <table id="corners"></table>
-  <div class="user-pos" id="userPos" style="display:none"></div>
 </div>
 
-<div class="enable" id="enable">
-  <div class="card">
-    <h2>Location needed</h2>
-    <p id="enableMsg">Allow location access so the map can show whether you are inside the plot.</p>
-    <button id="enableBtn">Enable location</button>
+<!-- Map mode -->
+<div id="mapMode" hidden>
+  <div id="map"></div>
+
+  <div id="status" class="status outside">
+    <div class="verdict" id="verdict">Waiting for GPS…</div>
+    <div class="detail" id="detail">Allow location access when the browser asks.</div>
+  </div>
+
+  <button class="fab" id="editFab" aria-label="Edit coordinates">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 20h9"></path>
+      <path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z"></path>
+    </svg>
+  </button>
+
+  <button class="fab" id="recenter" aria-label="Recenter map" disabled>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="3"></circle>
+      <line x1="12" y1="2" x2="12" y2="5"></line>
+      <line x1="12" y1="19" x2="12" y2="22"></line>
+      <line x1="2" y1="12" x2="5" y2="12"></line>
+      <line x1="19" y1="12" x2="22" y2="12"></line>
+    </svg>
+  </button>
+
+  <div class="sheet" id="sheet">
+    <div class="handle" id="sheetHandle"><span>Plot corners</span></div>
+    <table id="corners"></table>
+    <div class="user-pos" id="userPos" style="display:none"></div>
   </div>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-  const dms = (d, m, s) => d + m/60 + s/3600;
+  "use strict";
 
-  const CORNERS = [
-    { name: "A (NW)", lat: dms(52,11,33.32), lon: dms(13,18,50.53) },
-    { name: "B (NE)", lat: dms(52,11,33.79), lon: dms(13,18,53.35) },
-    { name: "D (SE)", lat: dms(52,11,30.23), lon: dms(13,18,54.40) },
-    { name: "C (SW)", lat: dms(52,11,29.75), lon: dms(13,18,51.69) },
-  ];
-  const POLY = CORNERS.map(c => [c.lat, c.lon]);
+  /* ----- DMS parsing ----- */
+  // Accepts "52° 11′ 33.32″ N", "52 11 33.32 N", "52.192589", "52.192589 N",
+  // "-52.192589". Returns a decimal number, or null.
+  function parseValue(line) {
+    const s = line.trim();
+    if (!s) return null;
+    const hemMatch = s.match(/([NSEW])\s*$/i);
+    const hem = hemMatch ? hemMatch[1].toUpperCase() : null;
+    const core = (hemMatch ? s.slice(0, hemMatch.index) : s).trim();
+    const nums = core.match(/-?\d+(?:\.\d+)?/g);
+    if (!nums || !nums.length) return null;
+    let v;
+    if (nums.length === 1) {
+      v = parseFloat(nums[0]);
+    } else if (nums.length === 2) {
+      v = Math.abs(parseFloat(nums[0])) + parseFloat(nums[1]) / 60;
+      if (parseFloat(nums[0]) < 0) v = -v;
+    } else {
+      v = Math.abs(parseFloat(nums[0])) + parseFloat(nums[1]) / 60 + parseFloat(nums[2]) / 3600;
+      if (parseFloat(nums[0]) < 0) v = -v;
+    }
+    if (hem === "S" || hem === "W") v = -Math.abs(v);
+    return v;
+  }
 
-  function inside(lat, lon, poly) {
+  function parseCorners(text) {
+    const values = [];
+    for (const raw of text.split(/\r?\n/)) {
+      const v = parseValue(raw);
+      if (v !== null && !isNaN(v)) values.push(v);
+    }
+    if (values.length % 2 !== 0) throw new Error("Odd number of values — need lat and lon per corner.");
+    const corners = [];
+    for (let i = 0; i < values.length; i += 2) {
+      const lat = values[i], lon = values[i+1];
+      if (Math.abs(lat) > 90) throw new Error(`Latitude ${lat} out of range.`);
+      if (Math.abs(lon) > 180) throw new Error(`Longitude ${lon} out of range.`);
+      corners.push([lat, lon]);
+    }
+    if (corners.length < 3 || corners.length > 18) throw new Error(`Need 3–18 corners, got ${corners.length}.`);
+    return corners;
+  }
+
+  /* ----- Bit-packed encoding -----
+     Layout (variable length, big-endian bits):
+       4 bits   : N - 3        (0..15, so N in 3..18)
+       25 bits  : refLat × 1e5 + 9_000_000     (unsigned)
+       26 bits  : refLon × 1e5 + 18_000_000    (unsigned)
+       (N-1) × {14 bits dlat, 14 bits dlon} signed, in units of 1e-5°
+     ~1.1 m precision. For N=4: 139 bits → 18 bytes → 24 base64url chars.
+  */
+  function encodePlot(corners) {
+    const N = corners.length;
+    const fields = [];
+    fields.push({ bits: 4, signed: false, value: N - 3 });
+    const refLat = Math.round(corners[0][0] * 1e5);
+    const refLon = Math.round(corners[0][1] * 1e5);
+    const refLatEnc = refLat + 9000000;
+    const refLonEnc = refLon + 18000000;
+    if (refLatEnc < 0 || refLatEnc >= (1 << 25)) throw new Error("ref lat out of range");
+    if (refLonEnc < 0 || refLonEnc >= (1 << 26)) throw new Error("ref lon out of range");
+    fields.push({ bits: 25, signed: false, value: refLatEnc });
+    fields.push({ bits: 26, signed: false, value: refLonEnc });
+    for (let i = 1; i < N; i++) {
+      const lat = Math.round(corners[i][0] * 1e5);
+      const lon = Math.round(corners[i][1] * 1e5);
+      const dlat = lat - refLat;
+      const dlon = lon - refLon;
+      if (dlat < -8192 || dlat >= 8192) throw new Error("corner too far from first corner (lat delta overflow)");
+      if (dlon < -8192 || dlon >= 8192) throw new Error("corner too far from first corner (lon delta overflow)");
+      fields.push({ bits: 14, signed: true, value: dlat });
+      fields.push({ bits: 14, signed: true, value: dlon });
+    }
+    const bytes = packBits(fields);
+    return bytesToBase64url(bytes);
+  }
+
+  function decodePlot(str) {
+    const bytes = base64urlToBytes(str);
+    const reader = bitReader(bytes);
+    const N = reader.read(4, false) + 3;
+    const refLatEnc = reader.read(25, false);
+    const refLonEnc = reader.read(26, false);
+    const refLat = refLatEnc - 9000000;
+    const refLon = refLonEnc - 18000000;
+    const corners = [[refLat / 1e5, refLon / 1e5]];
+    for (let i = 1; i < N; i++) {
+      const dlat = reader.read(14, true);
+      const dlon = reader.read(14, true);
+      corners.push([(refLat + dlat) / 1e5, (refLon + dlon) / 1e5]);
+    }
+    return corners;
+  }
+
+  function packBits(fields) {
+    let totalBits = 0;
+    for (const f of fields) totalBits += f.bits;
+    const bytes = new Uint8Array(Math.ceil(totalBits / 8));
+    let pos = 0;
+    for (const f of fields) {
+      let v = f.value;
+      if (f.signed) {
+        const range = 1 << f.bits;
+        if (v < -(range >> 1) || v >= (range >> 1)) throw new Error("signed overflow");
+        if (v < 0) v += range;
+      } else {
+        if (v < 0 || v >= Math.pow(2, f.bits)) throw new Error("unsigned overflow");
+      }
+      for (let i = f.bits - 1; i >= 0; i--) {
+        const bit = Math.floor(v / Math.pow(2, i)) & 1;
+        bytes[pos >> 3] |= bit << (7 - (pos & 7));
+        pos++;
+      }
+    }
+    return bytes;
+  }
+
+  function bitReader(bytes) {
+    let pos = 0;
+    return {
+      read(bits, signed) {
+        let v = 0;
+        for (let i = 0; i < bits; i++) {
+          const b = (bytes[pos >> 3] >> (7 - (pos & 7))) & 1;
+          v = v * 2 + b;
+          pos++;
+        }
+        if (signed && v >= (1 << (bits - 1))) v -= 1 << bits;
+        return v;
+      }
+    };
+  }
+
+  function bytesToBase64url(bytes) {
+    let bin = "";
+    for (const b of bytes) bin += String.fromCharCode(b);
+    return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
+  }
+
+  function base64urlToBytes(str) {
+    const b64 = str.replace(/-/g, "+").replace(/_/g, "/");
+    const bin = atob(b64 + "===".slice((b64.length + 3) % 4));
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return bytes;
+  }
+
+  /* ----- Formatting ----- */
+  function toDMS(v) {
+    const sign = v < 0 ? -1 : 1;
+    const abs = Math.abs(v);
+    const d = Math.floor(abs);
+    const mFloat = (abs - d) * 60;
+    const m = Math.floor(mFloat);
+    const s = ((mFloat - m) * 60).toFixed(2);
+    return `${sign < 0 ? "-" : ""}${d}° ${m}′ ${s}″`;
+  }
+  function toDMSHem(v, isLat) {
+    const hem = isLat ? (v < 0 ? "S" : "N") : (v < 0 ? "W" : "E");
+    return `${toDMS(Math.abs(v))} ${hem}`;
+  }
+
+  /* ----- Point-in-polygon and edge distance ----- */
+  function pointInPolygon(lat, lon, poly) {
     let hit = false;
     for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
       const [yi, xi] = poly[i];
@@ -264,23 +522,18 @@
     return hit;
   }
 
-  const MID_LAT = 52.1922 * Math.PI / 180;
-  const M_PER_DEG_LAT = 111320;
-  const M_PER_DEG_LON = 111320 * Math.cos(MID_LAT);
-  function toMeters(lat, lon, refLat, refLon) {
-    return [
-      (lon - refLon) * M_PER_DEG_LON,
-      (lat - refLat) * M_PER_DEG_LAT,
-    ];
-  }
-
   function edgeDistance(lat, lon, poly) {
-    const refLat = poly[0][0], refLon = poly[0][1];
-    const [px, py] = toMeters(lat, lon, refLat, refLon);
+    const refLat = poly[0][0];
+    const mPerDegLat = 111320;
+    const mPerDegLon = 111320 * Math.cos(refLat * Math.PI / 180);
+    const px = (lon - poly[0][1]) * mPerDegLon;
+    const py = (lat - refLat) * mPerDegLat;
     let best = Infinity;
     for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
-      const [ax, ay] = toMeters(poly[j][0], poly[j][1], refLat, refLon);
-      const [bx, by] = toMeters(poly[i][0], poly[i][1], refLat, refLon);
+      const ax = (poly[j][1] - poly[0][1]) * mPerDegLon;
+      const ay = (poly[j][0] - refLat) * mPerDegLat;
+      const bx = (poly[i][1] - poly[0][1]) * mPerDegLon;
+      const by = (poly[i][0] - refLat) * mPerDegLat;
       const dx = bx - ax, dy = by - ay;
       const len2 = dx*dx + dy*dy;
       let t = len2 === 0 ? 0 : ((px - ax) * dx + (py - ay) * dy) / len2;
@@ -292,130 +545,197 @@
     return best;
   }
 
-  const toDMS = v => {
-    const d = Math.floor(v);
-    const mFloat = (v - d) * 60;
-    const m = Math.floor(mFloat);
-    const s = ((mFloat - m) * 60).toFixed(2);
-    return `${d}° ${m}′ ${s}″`;
-  };
+  /* ----- Setup mode UI ----- */
+  const setupEl = document.getElementById("setup");
+  const mapModeEl = document.getElementById("mapMode");
+  const coordsInput = document.getElementById("coordsInput");
+  const parseBtn = document.getElementById("parseBtn");
+  const parseOut = document.getElementById("parseOut");
+  const generateBtn = document.getElementById("generateBtn");
+  const urlOut = document.getElementById("urlOut");
 
-  const cornersTable = document.getElementById("corners");
-  for (const c of CORNERS) {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td class="label">${c.name}</td>
-      <td>${toDMS(c.lat)} N</td>
-      <td>${toDMS(c.lon)} E</td>
-    `;
-    cornersTable.appendChild(tr);
-  }
+  let parsedCorners = null;
 
-  const map = L.map("map", { zoomControl: true, attributionControl: true });
-  const centerLat = CORNERS.reduce((s, c) => s + c.lat, 0) / CORNERS.length;
-  const centerLon = CORNERS.reduce((s, c) => s + c.lon, 0) / CORNERS.length;
-  map.setView([centerLat, centerLon], 19);
-  map.zoomControl.setPosition("topright");
-
-  const satellite = L.tileLayer(
-    "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-    {
-      maxZoom: 20,
-      maxNativeZoom: 19,
-      attribution: "Imagery © Esri, Maxar, Earthstar Geographics",
+  parseBtn.addEventListener("click", () => {
+    urlOut.innerHTML = "";
+    try {
+      parsedCorners = parseCorners(coordsInput.value);
+      let html = `<div class="preview"><strong>${parsedCorners.length} corners</strong><table>`;
+      parsedCorners.forEach((c, i) => {
+        html += `<tr><td class="label">#${i+1}</td><td>${toDMSHem(c[0], true)}</td><td>${toDMSHem(c[1], false)}</td></tr>`;
+      });
+      html += `</table></div>`;
+      parseOut.innerHTML = html;
+      generateBtn.disabled = false;
+    } catch (e) {
+      parsedCorners = null;
+      parseOut.innerHTML = `<div class="preview err">${e.message}</div>`;
+      generateBtn.disabled = true;
     }
-  ).addTo(map);
-  const streets = L.tileLayer(
-    "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-    { maxZoom: 19, attribution: "© OpenStreetMap" }
-  );
-  L.control.layers(
-    { "Satellite": satellite, "Street map": streets },
-    {},
-    { position: "topright", collapsed: true }
-  ).addTo(map);
+  });
 
-  const polyLayer = L.polygon(POLY, {
-    color: "#ffdd33",
-    weight: 3,
-    fillColor: "#ffdd33",
-    fillOpacity: 0.15,
-  }).addTo(map);
-  for (const c of CORNERS) {
-    L.circleMarker([c.lat, c.lon], {
-      radius: 5,
-      color: "#ffdd33",
-      fillColor: "#ffdd33",
-      fillOpacity: 1,
-      weight: 2,
-    }).bindTooltip(c.name, { permanent: false }).addTo(map);
+  generateBtn.addEventListener("click", () => {
+    if (!parsedCorners) return;
+    try {
+      const hash = encodePlot(parsedCorners);
+      const url = `${location.origin}${location.pathname}#${hash}`;
+      urlOut.innerHTML = `
+        <div class="url-out">
+          <div class="label">Forest URL — ${hash.length} chars after #</div>
+          <div class="url" id="urlText">${url}</div>
+          <div class="url-row">
+            <button class="btn secondary" id="copyBtn">Copy</button>
+            <button class="btn" id="openBtn">Open</button>
+          </div>
+        </div>`;
+      document.getElementById("copyBtn").addEventListener("click", async () => {
+        try {
+          await navigator.clipboard.writeText(url);
+          document.getElementById("copyBtn").textContent = "Copied";
+        } catch { /* fall through */ }
+      });
+      document.getElementById("openBtn").addEventListener("click", () => {
+        location.hash = hash;
+        location.reload();
+      });
+    } catch (e) {
+      urlOut.innerHTML = `<div class="preview err">${e.message}</div>`;
+    }
+  });
+
+  function showSetup(prefillCorners) {
+    if (prefillCorners) {
+      coordsInput.value = prefillCorners.map(c =>
+        `${toDMSHem(c[0], true)}\n${toDMSHem(c[1], false)}`
+      ).join("\n\n");
+      parseBtn.click();
+    }
+    setupEl.hidden = false;
+    mapModeEl.hidden = true;
   }
-  map.fitBounds(polyLayer.getBounds(), { padding: [60, 30] });
 
-  let userMarker = null;
-  let accuracyCircle = null;
-  let firstFix = true;
+  /* ----- Map mode ----- */
+  let map, polyLayer, userMarker, accuracyCircle, currentCorners, firstFix = true;
 
-  const statusEl = document.getElementById("status");
-  const verdictEl = document.getElementById("verdict");
-  const detailEl = document.getElementById("detail");
-  const userPosEl = document.getElementById("userPos");
-  const recenterBtn = document.getElementById("recenter");
-  const enableEl = document.getElementById("enable");
-  const enableBtn = document.getElementById("enableBtn");
-  const enableMsg = document.getElementById("enableMsg");
-  const sheet = document.getElementById("sheet");
-  const sheetHandle = document.getElementById("sheetHandle");
+  function showMap(corners) {
+    currentCorners = corners;
+    setupEl.hidden = true;
+    mapModeEl.hidden = false;
+
+    if (!map) initMap();
+    else resetMap();
+
+    corners.forEach(c => {
+      L.circleMarker([c[0], c[1]], {
+        radius: 5, color: "#ffdd33", fillColor: "#ffdd33",
+        fillOpacity: 1, weight: 2,
+      }).addTo(map);
+    });
+    polyLayer = L.polygon(corners, {
+      color: "#ffdd33", weight: 3, fillColor: "#ffdd33", fillOpacity: 0.15,
+    }).addTo(map);
+    map.fitBounds(polyLayer.getBounds(), { padding: [60, 30] });
+
+    const cornersTable = document.getElementById("corners");
+    cornersTable.innerHTML = "";
+    corners.forEach((c, i) => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td class="label">#${i+1}</td>
+        <td>${toDMSHem(c[0], true)}</td>
+        <td>${toDMSHem(c[1], false)}</td>`;
+      cornersTable.appendChild(tr);
+    });
+
+    startTracking();
+  }
+
+  function initMap() {
+    map = L.map("map", { zoomControl: true, attributionControl: true });
+    map.zoomControl.setPosition("topright");
+    const satellite = L.tileLayer(
+      "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+      { maxZoom: 20, maxNativeZoom: 19, attribution: "Imagery © Esri" }
+    ).addTo(map);
+    const streets = L.tileLayer(
+      "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+      { maxZoom: 19, attribution: "© OpenStreetMap" }
+    );
+    L.control.layers(
+      { "Satellite": satellite, "Street map": streets }, {},
+      { position: "topright", collapsed: true }
+    ).addTo(map);
+
+    document.getElementById("recenter").addEventListener("click", () => {
+      if (userMarker) {
+        const bounds = L.latLngBounds([userMarker.getLatLng(), ...currentCorners]);
+        map.fitBounds(bounds, { padding: [80, 40], maxZoom: 19 });
+      }
+    });
+    document.getElementById("editFab").addEventListener("click", () => {
+      showSetup(currentCorners);
+    });
+    document.getElementById("sheetHandle").addEventListener("click", () => {
+      document.getElementById("sheet").classList.toggle("open");
+    });
+    window.addEventListener("resize", () => map.invalidateSize());
+    window.addEventListener("orientationchange", () => {
+      setTimeout(() => map.invalidateSize(), 200);
+    });
+  }
+
+  function resetMap() {
+    map.eachLayer(l => {
+      if (l instanceof L.Polygon || l instanceof L.CircleMarker || l instanceof L.Circle) {
+        if (l !== userMarker && l !== accuracyCircle) map.removeLayer(l);
+      }
+    });
+    userMarker = null;
+    accuracyCircle = null;
+    firstFix = true;
+  }
 
   function setStatus(cls, verdict, detail) {
+    const statusEl = document.getElementById("status");
     statusEl.className = "status " + cls;
-    verdictEl.textContent = verdict;
-    detailEl.textContent = detail;
+    document.getElementById("verdict").textContent = verdict;
+    document.getElementById("detail").textContent = detail;
   }
 
   function onPosition(pos) {
     const { latitude, longitude, accuracy } = pos.coords;
-    const isInside = inside(latitude, longitude, POLY);
-    const dist = edgeDistance(latitude, longitude, POLY);
+    const isInside = pointInPolygon(latitude, longitude, currentCorners);
+    const dist = edgeDistance(latitude, longitude, currentCorners);
     const acc = Math.max(1, Math.round(accuracy));
     const distRounded = Math.round(dist);
 
     if (isInside) {
       if (dist < accuracy) {
-        setStatus("near", "Near the edge",
-          `Inside, ${distRounded} m from border · GPS ±${acc} m`);
+        setStatus("near", "Near the edge", `Inside, ${distRounded} m from border · GPS ±${acc} m`);
       } else {
-        setStatus("inside", "Inside the plot",
-          `${distRounded} m from nearest border · GPS ±${acc} m`);
+        setStatus("inside", "Inside the plot", `${distRounded} m from nearest border · GPS ±${acc} m`);
       }
     } else {
       if (dist < accuracy) {
-        setStatus("near", "Near the edge",
-          `Outside by ${distRounded} m · GPS ±${acc} m`);
+        setStatus("near", "Near the edge", `Outside by ${distRounded} m · GPS ±${acc} m`);
       } else {
-        setStatus("outside", `${distRounded} m away`,
-          `Outside the plot · GPS ±${acc} m`);
+        setStatus("outside", `${distRounded} m away`, `Outside the plot · GPS ±${acc} m`);
       }
     }
 
-    userPosEl.style.display = "block";
-    userPosEl.textContent = `You: ${toDMS(latitude)} N, ${toDMS(longitude)} E · ±${acc} m`;
+    document.getElementById("userPos").style.display = "block";
+    document.getElementById("userPos").textContent =
+      `You: ${toDMSHem(latitude, true)}, ${toDMSHem(longitude, false)} · ±${acc} m`;
 
     if (!userMarker) {
       userMarker = L.circleMarker([latitude, longitude], {
-        radius: 7,
-        color: "#ffffff",
-        fillColor: "#3b82f6",
-        fillOpacity: 1,
-        weight: 2,
+        radius: 7, color: "#ffffff", fillColor: "#3b82f6",
+        fillOpacity: 1, weight: 2,
       }).addTo(map);
       accuracyCircle = L.circle([latitude, longitude], {
-        radius: accuracy,
-        color: "#3b82f6",
-        weight: 1,
-        fillOpacity: 0.12,
+        radius: accuracy, color: "#3b82f6", weight: 1, fillOpacity: 0.12,
       }).addTo(map);
-      recenterBtn.disabled = false;
+      document.getElementById("recenter").disabled = false;
     } else {
       userMarker.setLatLng([latitude, longitude]);
       accuracyCircle.setLatLng([latitude, longitude]);
@@ -424,17 +744,14 @@
 
     if (firstFix) {
       firstFix = false;
-      const bounds = L.latLngBounds([[latitude, longitude], ...POLY]);
+      const bounds = L.latLngBounds([[latitude, longitude], ...currentCorners]);
       map.fitBounds(bounds, { padding: [80, 40], maxZoom: 19 });
     }
   }
 
   function onError(err) {
     if (err.code === err.PERMISSION_DENIED) {
-      setStatus("error", "Location blocked",
-        "Enable location access in browser settings and reload.");
-      enableMsg.textContent = "Location was denied. Open the browser's site settings for this page and allow location, then reload.";
-      enableEl.classList.add("show");
+      setStatus("error", "Location blocked", "Allow location in browser settings and reload.");
     } else if (err.code === err.POSITION_UNAVAILABLE) {
       setStatus("error", "No GPS signal", "Move to open sky and wait a moment.");
     } else if (err.code === err.TIMEOUT) {
@@ -449,39 +766,26 @@
       setStatus("error", "No GPS", "This browser does not support geolocation.");
       return;
     }
-    enableEl.classList.remove("show");
     setStatus("outside", "Locating…", "Waiting for the first GPS fix.");
     navigator.geolocation.watchPosition(onPosition, onError, {
-      enableHighAccuracy: true,
-      maximumAge: 2000,
-      timeout: 30000,
+      enableHighAccuracy: true, maximumAge: 2000, timeout: 30000,
     });
   }
 
-  recenterBtn.addEventListener("click", () => {
-    if (userMarker) {
-      const bounds = L.latLngBounds([userMarker.getLatLng(), ...POLY]);
-      map.fitBounds(bounds, { padding: [80, 40], maxZoom: 19 });
-    }
-  });
-
-  sheetHandle.addEventListener("click", () => {
-    sheet.classList.toggle("open");
-  });
-
-  enableBtn.addEventListener("click", startTracking);
-
-  // Auto-start on page load. Modern browsers show the native permission
-  // prompt without a user gesture on HTTPS pages.
+  /* ----- Entry ----- */
   window.addEventListener("load", () => {
-    setTimeout(startTracking, 300);
-    // Keep the map sized correctly after any mobile UI chrome settles.
-    setTimeout(() => map.invalidateSize(), 400);
-  });
-
-  window.addEventListener("resize", () => map.invalidateSize());
-  window.addEventListener("orientationchange", () => {
-    setTimeout(() => map.invalidateSize(), 200);
+    const hash = location.hash.replace(/^#/, "");
+    if (hash) {
+      try {
+        const corners = decodePlot(hash);
+        showMap(corners);
+        setTimeout(() => map.invalidateSize(), 400);
+        return;
+      } catch (e) {
+        console.warn("Invalid hash:", e);
+      }
+    }
+    showSetup();
   });
 </script>
 </body>
